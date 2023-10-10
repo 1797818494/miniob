@@ -26,7 +26,7 @@ namespace common {
 std::string getFileName(const std::string &fullPath)
 {
   std::string szRt;
-  size_t pos;
+  size_t      pos;
   try {
     pos = fullPath.rfind(FILE_PATH_SPLIT);
     if (pos != std::string::npos && pos < fullPath.size() - 1) {
@@ -40,7 +40,29 @@ std::string getFileName(const std::string &fullPath)
   } catch (...) {}
   return szRt;
 }
+void removeDirectory(const std::string &path)
+{
+  DIR *dir = opendir(path.c_str());
+  if (dir) {
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr) {
+      if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+        std::string filePath = path + "/" + entry->d_name;
 
+        struct stat fileStat;
+        if (lstat(filePath.c_str(), &fileStat) == 0) {
+          if (S_ISDIR(fileStat.st_mode)) {
+            removeDirectory(filePath);  // 递归删除子目录
+          } else {
+            remove(filePath.c_str());  // 删除文件
+          }
+        }
+      }
+    }
+    closedir(dir);
+    rmdir(path.c_str());  // 删除空目录
+  }
+}
 void getFileName(const char *path, std::string &fileName)
 {
   // Don't care the last character as FILE_PATH_SPLIT
@@ -62,7 +84,7 @@ void getFileName(const char *path, std::string &fileName)
 std::string getDirName(const std::string &fullPath)
 {
   std::string szRt;
-  size_t pos;
+  size_t      pos;
   try {
     pos = fullPath.rfind(FILE_PATH_SPLIT);
     if (pos != std::string::npos && pos > 0) {
@@ -98,7 +120,7 @@ void getDirName(const char *path, std::string &parent)
 std::string getFilePath(const std::string &fullPath)
 {
   std::string szRt;
-  size_t pos;
+  size_t      pos;
   try {
     pos = fullPath.rfind("/");
     if (pos != std::string::npos) {
@@ -118,7 +140,7 @@ std::string getAboslutPath(const char *path)
   std::string aPath(path);
   if (path[0] != '/') {
     const int MAX_SIZE = 256;
-    char current_absolute_path[MAX_SIZE];
+    char      current_absolute_path[MAX_SIZE];
 
     if (NULL == getcwd(current_absolute_path, MAX_SIZE)) {}
   }
@@ -157,7 +179,7 @@ bool check_directory(std::string &path)
     if (0 != mkdir(path.c_str(), 0777) && !is_directory(path.c_str()))
       return false;
 
-    path[i] = '/';
+    path[i]   = '/';
     sep_state = true;
   }
 
@@ -193,7 +215,7 @@ int list_file(const char *path, const char *filter_pattern, std::vector<std::str
   // as readdir is not thread-safe, it is better to use C++ directory
   // TODO
   struct dirent *pentry;
-  char tmp_path[PATH_MAX];
+  char           tmp_path[PATH_MAX];
   while ((pentry = readdir(pdir)) != NULL) {
     if ('.' == pentry->d_name[0])  // 跳过./..文件和隐藏文件
       continue;
